@@ -1,5 +1,7 @@
+#pragma once
 #include <NTPClient.h>
 
+void _setBrightness(uint8_t brightval) __attribute__((weak));
 
 void setBrightness(int bright, bool save = true);
 
@@ -38,3 +40,5 @@ void runClockLoop();
 void setSoundConfig();
 
 void setWifiStartupConfig();
+
+void setStartupApp();

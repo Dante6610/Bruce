@@ -25,8 +25,6 @@ struct FilePage {
 
 //SPIClass sdcardSPI;
 String fileToCopy;
-//String fileList[MAXFILES][3];
-//String fileList[1][3];
 std::vector<FileList> fileList;
 
 FilePage filePages[100];  // Maximum of 100 pages
@@ -44,11 +42,9 @@ bool setupSdCard() {
   }
 
   // avoid unnecessary remounting
-  //if(sdcardMounted) return true;
+if(sdcardMounted) return true;
 
-#if defined(CORES3)
-  if (!SD.begin(SDCARD_CS))
-#elif TFT_MOSI == SDCARD_MOSI && TFT_MOSI>0
+#if TFT_MOSI == SDCARD_MOSI && TFT_MOSI>0
   if (!SD.begin(SDCARD_CS, tft.getSPIinstance()))
 #else
   sdcardSPI.end();
@@ -149,11 +145,12 @@ bool renameFile(FS fs, String path, String filename) {
 ** Function name: copyToFs
 ** Description:   copy file from SD or LittleFS to LittleFS or SD
 ***************************************************************************************/
-bool copyToFs(FS from, FS to, String path) {
+bool copyToFs(FS from, FS to, String path, bool draw) {
   // Using Global Buffer
   bool result;
+  if(!sdcardMounted) { Serial.println("Error 0"); return false; }
 
-  if (!SD.begin()) { result = false; Serial.println("Error 1"); }
+  if (!SD.begin()) { sdcardMounted=false; result = false; Serial.println("Error 1"); }
   if(!LittleFS.begin()) { result = false; Serial.println("Error 2"); }
 
   File source = from.open(path, FILE_READ);
@@ -187,7 +184,7 @@ bool copyToFs(FS from, FS to, String path) {
     } else {
       prog+=bytesRead;
       float rad = 360*prog/tot;
-      tft.drawArc(WIDTH/2,HEIGHT/2,HEIGHT/4,HEIGHT/5,0,int(rad),ALCOLOR,bruceConfig.bgColor,true);
+      if(draw) tft.drawArc(WIDTH/2,HEIGHT/2,HEIGHT/4,HEIGHT/5,0,int(rad),ALCOLOR,bruceConfig.bgColor,true);
     }
   }
   if(prog==tot) result = true;
@@ -326,18 +323,6 @@ String readSmallFile(FS &fs, String filepath) {
 ** Description:   get a file size without opening
 ***************************************************************************************/
 size_t getFileSize(FS &fs, String filepath) {
-  /*
-  #if !defined(M5STACK)
-    if(&fs == &SD) filepath = "/sd" + filepath;
-    else if(&fs == &LittleFS) filepath = "/littlefs" + filepath;
-    else return 0;  // not found
-    struct stat st;
-    memset(&st, 0, sizeof(struct stat));
-    if (stat(filepath.c_str(), &st) != 0) return 0;  // stat error
-    // else
-    return st.st_size;
-  #else
-  */
   File file = fs.open(filepath, FILE_READ);
   if (!file) return 0;
   size_t fileSize = file.size();
@@ -516,7 +501,7 @@ String loopSD(FS &fs, bool filePicker, String allowed_ext) {
       redraw = false;
     }
 
-    #ifdef CARDPUTER
+    #ifdef HAS_KEYBOARD
       if(checkEscPress()) break;  // quit
 
       /* TODO: go back 1 level instead of quitting

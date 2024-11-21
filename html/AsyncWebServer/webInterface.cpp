@@ -254,6 +254,7 @@ void configureWebServer() {
         String filePath = request->getParam("filePath", true)->value().c_str();
         String filePath2 = filePath.substring(0,filePath.lastIndexOf('/')+1) + fileName;
         if(!SD.begin()) {
+            sdcardMounted=false;
             request->send(200, "text/plain", "Fail starting SD Card.");
         } else {
           // Rename the file of folder
@@ -398,11 +399,7 @@ file_size = 0;
 
   // configure web server
   Serial.println("Configuring Webserver ...");
-  #if defined(CARDPUTER) || defined(STICK_C_PLUS2)
   server = (AsyncWebServer*)malloc(sizeof(AsyncWebServer));
-  #else
-  server = (AsyncWebServer*)malloc(sizeof(AsyncWebServer));
-  #endif
   new (server) AsyncWebServer(config.webserverporthttp);
   configureWebServer();
   server->begin();

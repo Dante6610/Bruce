@@ -6,16 +6,13 @@
 
 void ConfigMenu::optionsMenu() {
     options = {
-        #if defined(CYD) // Brightness control -> Not working yet, don't know why! @Pirata, Delete if from here after you solve this thing
-        {"Brightness",    [=]() { displayWarning("Bright CTRL not working",true);}},
-        #else
         {"Brightness",    [=]() { setBrightnessMenu(); }},
-        #endif
         {"Dim Time",      [=]() { setDimmerTimeMenu(); }},
         {"Orientation",   [=]() { gsetRotation(true); }},
         {"UI Color",      [=]() { setUIColor(); }},
         {"Sound On/Off",  [=]() { setSoundConfig(); }},
         {"Startup WiFi",  [=]() { setWifiStartupConfig(); }},
+        {"Startup App",   [=]() { setStartupApp(); }},
         {"Clock",         [=]() { setClock(); }},
         {"Sleep",         [=]() { setSleepMode(); }},
         {"Restart",       [=]() { ESP.restart(); }},
