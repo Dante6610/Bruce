@@ -4,9 +4,11 @@
 #include "mykeyboard.h"   // using keyboard when calling rename
 #include "display.h"      // using displayRedStripe as error msg
 #include "passwords.h"
+#include "scrollableTextArea.h"
 #include "modules/others/audio.h"
 #include "modules/rf/rf.h"
 #include "modules/ir/TV-B-Gone.h"
+#include "modules/ir/custom_ir.h"
 #include "modules/wifi/wigle.h"
 #include "modules/others/bad_usb.h"
 #include "modules/others/qrcode_menu.h"
@@ -16,19 +18,9 @@
 #include <esp32/rom/crc.h>  // for CRC32
 #include <algorithm> // for std::sort
 
-struct FilePage {
-  int pageIndex;
-  int startIdx;
-  int endIdx;
-};
-
-
 //SPIClass sdcardSPI;
 String fileToCopy;
 std::vector<FileList> fileList;
-
-FilePage filePages[100];  // Maximum of 100 pages
-
 
 
 /***************************************************************************************
@@ -454,6 +446,7 @@ void readFs(FS fs, String folder, String allowed_ext) {
 **  Where you choose what to do with your SD Files
 **********************************************************************/
 String loopSD(FS &fs, bool filePicker, String allowed_ext) {
+  Opt_Coord coord;
   String result = "";
   bool reload=false;
   bool redraw = true;
@@ -482,24 +475,26 @@ String loopSD(FS &fs, bool filePicker, String allowed_ext) {
 
     if(redraw) {
       if(strcmp(PreFolder.c_str(),Folder.c_str()) != 0 || reload){
+        index=0;
         tft.fillScreen(bruceConfig.bgColor);
         tft.drawRoundRect(5,5,WIDTH-10,HEIGHT-10,5,bruceConfig.priColor);
-        index=0;
         Serial.println("reload to read: " + Folder);
         readFs(fs, Folder, allowed_ext);
         PreFolder = Folder;
         maxFiles = fileList.size()-1;
+        if(strcmp(PreFolder.c_str(),Folder.c_str()) != 0 || index > maxFiles) index=0;
         reload=false;
       }
       if(fileList.size()<2) readFs(fs, Folder,allowed_ext);
 
-      listFiles(index, fileList);
+      coord=listFiles(index, fileList);
       #if defined(HAS_TOUCH)
         TouchFooter();
       #endif
       delay(REDRAW_DELAY);
       redraw = false;
     }
+    displayScrollingText(fileList[index].filename, coord);
 
     #ifdef HAS_KEYBOARD
       if(checkEscPress()) break;  // quit
@@ -630,15 +625,18 @@ String loopSD(FS &fs, bool filePicker, String allowed_ext) {
 
           // custom file formats commands added in front
           if(filepath.endsWith(".jpg")) options.insert(options.begin(), {"View Image",  [&]() {
-              showJpeg(fs, filepath);
+              showJpeg(fs, filepath,0,0,true);
               delay(750);
               while(!checkAnyKeyPress()) yield();
             }});
+            /*
+              // GIFs are not working at all, need study
           if(filepath.endsWith(".gif")) options.insert(options.begin(), {"View Image",  [&]() {
               showGIF(fs, filepath);
               delay(750);
               while(!checkAnyKeyPress()) yield();
             }});
+            */
           if(filepath.endsWith(".ir")) options.insert(options.begin(), {"IR Tx SpamAll",  [&]() {
               delay(200);
               txIrFile(&fs, filepath);
@@ -704,8 +702,9 @@ String loopSD(FS &fs, bool filePicker, String allowed_ext) {
           #if defined(HAS_NS4168_SPKR)
           if(isAudioFile(filepath)) options.insert(options.begin(), {"Play Audio",  [&]() {
             delay(200);
+            Serial.println(checkAnyKeyPress());
+            delay(200);
             playAudioFile(&fs, filepath);
-            setup_gpio(); //TODO: remove after fix select loop
           }});
           #endif
           // generate qr codes from small files (<3K)
@@ -754,114 +753,21 @@ String loopSD(FS &fs, bool filePicker, String allowed_ext) {
 }
 
 /*********************************************************************
-**  Function: createFilePages
-**  Create a list of file pages to be displayed
-**********************************************************************/
-int createFilePages(String fileContent) {
-  const int8_t MAX_LINES = 16;
-  const int8_t MAX_LINE_CHARS = 41;
-
-  int currentPage = 0;
-  int lineStartIdx = 0;
-  int pageStartIdx = 0;
-  int pageEndIdx = 0;
-  int totalPageLines = 0;
-
-  while (pageEndIdx < fileContent.length()) {
-    // Check end of line
-    if (fileContent[pageEndIdx] == '\n' || (pageEndIdx-lineStartIdx) == MAX_LINE_CHARS) {
-      totalPageLines++;
-      lineStartIdx = pageEndIdx + 1;
-    }
-
-    // Check end of page
-    if (totalPageLines == MAX_LINES) {
-      filePages[currentPage].pageIndex = currentPage;
-      filePages[currentPage].startIdx = pageStartIdx;
-      filePages[currentPage].endIdx = pageEndIdx;
-
-      currentPage++;
-      pageStartIdx = pageEndIdx + 1;
-      totalPageLines = 0;
-    }
-
-    pageEndIdx++;
-  }
-
-  if (totalPageLines > 0) {
-    filePages[currentPage].pageIndex = currentPage;
-    filePages[currentPage].startIdx = pageStartIdx;
-    filePages[currentPage].endIdx = pageEndIdx;
-  }
-
-  return currentPage;
-}
-
-/*********************************************************************
 **  Function: viewFile
 **  Display file content
 **********************************************************************/
 void viewFile(FS fs, String filepath) {
-  tft.fillScreen(bruceConfig.bgColor);
-  String fileContent = "";
-  File file;
-  String displayText;
-  int totalPages;
-  int currentPage = 0;
-  bool updateContent = true;
-
-  file = fs.open(filepath, FILE_READ);
+  File file = fs.open(filepath, FILE_READ);
   if (!file) return;
 
-  // TODO: detect binary file, switch to hex view
-  // String header=file.read(100); file.rewind();
-  // if(isValidAscii(header)) ...
+  ScrollableTextArea area = ScrollableTextArea("VIEW FILE");
+  area.fromFile(file);
 
-  while (file.available()) {
-    fileContent = file.readString();
-  }
   file.close();
-  delay(100);
 
-  totalPages = createFilePages(fileContent);
-
-  while(1) {
-    if(updateContent) {
-      tft.fillScreen(bruceConfig.bgColor);
-      tft.setCursor(0,4);
-      tft.setTextSize(FP);
-
-      displayText = fileContent.substring(
-        filePages[currentPage].startIdx,
-        filePages[currentPage].endIdx
-      );
-      tft.print(displayText);
-
-      delay(150);
-      updateContent = false;
-    }
-
-    if(checkEscPress()) break;
-
-    if(checkPrevPress()) {
-      if (currentPage > 0) {
-        currentPage--;
-        updateContent = true;
-      }
-    }
-
-    if(checkNextPress()) {
-      if (currentPage < totalPages) {
-        currentPage++;
-        updateContent = true;
-      }
-    }
-
-    delay(100);
-  }
-
-  return;
+  area.show();
 }
+
 /*********************************************************************
 **  Function: checkLittleFsSize
 **  Check if there are more then 4096 bytes available for storage
@@ -872,6 +778,7 @@ bool checkLittleFsSize() {
     return false;
   } else return true;
 }
+
 /*********************************************************************
 **  Function: checkLittleFsSize
 **  Check if there are more then 4096 bytes available for storage
@@ -898,11 +805,6 @@ bool getFsStorage(FS *&fs) {
 **  Display file info
 **********************************************************************/
 void fileInfo(FS fs, String filepath) {
-  tft.fillScreen(bruceConfig.bgColor);
-  tft.setCursor(0,0);
-  tft.setTextColor(bruceConfig.priColor, bruceConfig.bgColor);
-  tft.setTextSize(FP);
-
   File file = fs.open(filepath, FILE_READ);
   if (!file) return;
 
@@ -920,9 +822,8 @@ void fileInfo(FS fs, String filepath) {
     unit = "kB";
   }
 
+  drawMainBorderWithTitle("FILE INFO");
   padprintln("");
-  tft.drawCentreString("-"+String(file.name()), WIDTH/2, tft.getCursorY(), 1);
-  padprintln("\n");
   padprintln("Path: " + filepath);
   padprintln("");
   padprintf("Bytes: %d\n", bytesize);
@@ -934,10 +835,7 @@ void fileInfo(FS fs, String filepath) {
   file.close();
   delay(100);
 
-  while(1) {
-    if(checkEscPress() || checkSelPress()) break;
-    delay(100);
-  }
+  while(!checkEscPress() && !checkSelPress()) { delay(100); }
 
   return;
 }

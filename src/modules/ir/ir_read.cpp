@@ -131,8 +131,8 @@ void IrRead::read_signal() {
 
     // switch to raw mode if decoding failed
     if(results.decode_type == decode_type_t::UNKNOWN ) {
-        //displayWarning("signal decoding failed, switching to RAW mode", true);
         Serial.println("signal decoding failed, switching to RAW mode");
+        //displayWarning("signal decoding failed, switching to RAW mode", true);
         raw = true;
         // TODO: show a dialog
         // raw = yesNoDialog("decoding failed, save as RAW?");
@@ -202,7 +202,6 @@ String IrRead::parse_raw_signal() {
 
     return signal_code;
 }
-
 
 void IrRead::append_to_file_str(String btn_name) {
     strDeviceContent += "name: " + btn_name + "\n";
@@ -312,34 +311,32 @@ void IrRead::save_device() {
 
     FS* fs = nullptr;
 
-    bool sdCardAvaible = setupSdCard();
-    bool littleFsAvaible = checkLittleFsSize();
+    bool sdCardAvailable = setupSdCard();
+    bool littleFsAvailable = checkLittleFsSize();
 
-    if (sdCardAvaible && littleFsAvaible) {
+    if (sdCardAvailable && littleFsAvailable) {
         // ask to choose one
         options = {
-            {"SD Card", [&]()    { fs=&SD; }},
+            {"SD Card",  [&]()   {  fs=&SD; }},
             {"LittleFS", [&]()   {  fs=&LittleFS; }},
         };
         delay(200);
         loopOptions(options);
-    } else if (sdCardAvaible) {
+    } else if (sdCardAvailable) {
         fs=&SD;
-    } else if (littleFsAvaible) {
+    } else if (littleFsAvailable) {
         fs=&LittleFS;
     };
 
-    if (fs != nullptr && write_file(filename, fs)) {
+    if (fs && write_file(filename, fs)) {
         displaySuccess("File saved to " + String((fs == &SD) ? "SD Card" : "LittleFS") + ".", true);
         signals_read = 0;
         strDeviceContent = "";
-    } else {
-        if (fs == nullptr) {
-            displayError("No storage available.", true);
-        } else displayError("Error writing file.", true);
-    }
+    } else displayError(fs ? "Error writing file." : "No storage available.", true);
 
     delay(1000);
+
+    irrecv.resume();
     begin();
 }
 

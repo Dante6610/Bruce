@@ -270,17 +270,18 @@ NewScript:
     tft.fillScreen(bruceConfig.bgColor);
     if(first_time) {
       options = {
-        {"US Inter",    [=]() { chooseKb(KeyboardLayout_en_US); }},
-        {"PT-BR ABNT2", [=]() { chooseKb(KeyboardLayout_pt_BR); }},
-        {"PT-Portugal", [=]() { chooseKb(KeyboardLayout_pt_PT); }},
-        {"AZERTY FR",   [=]() { chooseKb(KeyboardLayout_fr_FR); }},
-        {"es-Espanol",  [=]() { chooseKb(KeyboardLayout_es_ES); }},
-        {"it-Italiano", [=]() { chooseKb(KeyboardLayout_it_IT); }},
-        {"en-UK",       [=]() { chooseKb(KeyboardLayout_en_UK); }},
-        {"de-DE",       [=]() { chooseKb(KeyboardLayout_de_DE); }},
-        {"sv-SE",       [=]() { chooseKb(KeyboardLayout_sv_SE); }},
-        {"da-DK",       [=]() { chooseKb(KeyboardLayout_da_DK); }},
-        {"hu-HU",       [=]() { chooseKb(KeyboardLayout_hu_HU); }},
+        {"US International", [=]() { chooseKb(KeyboardLayout_en_US); }},
+        {"Portuguese (Brazil)", [=]() { chooseKb(KeyboardLayout_pt_BR); }},
+        {"Portuguese (Portugal)", [=]() { chooseKb(KeyboardLayout_pt_PT); }},
+        {"French AZERTY", [=]() { chooseKb(KeyboardLayout_fr_FR); }},
+        {"Spanish (Spain)", [=]() { chooseKb(KeyboardLayout_es_ES); }},
+        {"Italian (Italy)", [=]() { chooseKb(KeyboardLayout_it_IT); }},
+        {"English (UK)", [=]() { chooseKb(KeyboardLayout_en_UK); }},
+        {"German (Germany)", [=]() { chooseKb(KeyboardLayout_de_DE); }},
+        {"Swedish (Sweden)", [=]() { chooseKb(KeyboardLayout_sv_SE); }},
+        {"Danish (Denmark)", [=]() { chooseKb(KeyboardLayout_da_DK); }},
+        {"Hungarian (Hungary)", [=]() { chooseKb(KeyboardLayout_hu_HU); }},
+        {"Turkish (Turkey)", [=]() { chooseKb(KeyboardLayout_tr_TR); }},
       };
       delay(200);
       loopOptions(options,false,true,"Keyboard Layout");
@@ -297,7 +298,7 @@ NewScript:
       mySerial.write(0x00);
       while(mySerial.available()<=0) {
         if(mySerial.available()<=0) {
-          displayRedStripe("CH9329 -> USB",TFT_WHITE,bruceConfig.priColor);
+          displaySomething("CH9329 -> USB");
           delay(200);
           mySerial.write(0x00);
         } else break;
@@ -308,7 +309,7 @@ NewScript:
       }
       #endif
 
-      displayRedStripe("Preparing",TFT_WHITE, bruceConfig.priColor); // Time to Computer or device recognize the USB HID
+      displaySomething("Preparing"); // Time to Computer or device recognize the USB HID
       delay(2000);
       first_time=false;
     }
@@ -316,11 +317,8 @@ NewScript:
     delay(200);
     key_input(*fs, bad_script);
 
-    displayRedStripe("Payload Sent",TFT_WHITE, bruceConfig.priColor);
-    checkSelPress();
-    while (!checkSelPress()) {
-        // nothing here, just to hold the screen press Ok of M5.
-    }
+    displaySomething("Payload Sent",true);
+
     if(returnToMenu) return;
     // Try to run a new script on the same device
     goto NewScript;
@@ -385,6 +383,7 @@ void usb_keyboard() {
     {"sv-SE",       [=]() { chooseKb(KeyboardLayout_sv_SE); }},
     {"da-DK",       [=]() { chooseKb(KeyboardLayout_da_DK); }},
     {"hu-HU",       [=]() { chooseKb(KeyboardLayout_hu_HU); }},
+    {"tr-TR",       [=]() { chooseKb(KeyboardLayout_tr_TR); }},
     {"Main Menu",   [=]() { returnToMenu=true; }},
   };
   delay(200);

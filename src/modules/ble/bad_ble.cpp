@@ -274,6 +274,7 @@ NewScript:
         {"sv-SE",       [=]() { chooseKb_ble(KeyboardLayout_sv_SE); }},
         {"da-DK",       [=]() { chooseKb_ble(KeyboardLayout_da_DK); }},
         {"hu-HU",       [=]() { chooseKb_ble(KeyboardLayout_hu_HU); }},
+        {"tr-TR",       [=]() { chooseKb_ble(KeyboardLayout_tr_TR); }},
         {"Main Menu",   [=]() { returnToMenu=true; }},
       };
       delay(250);
@@ -283,23 +284,19 @@ NewScript:
       if (!kbChosen_ble) Kble.begin(); // starts the KeyboardLayout_en_US as default if nothing had beed chosen (cancel selection)
       Ask_for_restart=1; // arm the flag
       first_time=false;
-      displayRedStripe("Waiting Victim",TFT_WHITE, bruceConfig.priColor);
+      displaySomething("Waiting Victim");
     }
     while (!Kble.isConnected() && !checkEscPress());
 
     if(Kble.isConnected())  {
       BLEConnected=true;
-      displayRedStripe("Preparing",TFT_WHITE, bruceConfig.priColor);
+      displaySomething("Preparing");
       delay(1000);
       displayWarning(String(BTN_ALIAS) + " to deploy", true);
       delay(200);
       key_input_ble(*fs, bad_script);
 
-      displayRedStripe("Payload Sent",TFT_WHITE, bruceConfig.priColor);
-      checkSelPress();
-      while (!checkSelPress()) {
-          // nothing here, just to hold the screen press Ok of M5.
-      }
+      displaySomething("Payload Sent",true);
       if(returnToMenu) goto End; // when cancel the run in the middle, go to End to turn off BLE services
       // Try to run a new script on the same device
 
@@ -320,7 +317,7 @@ void ble_MediaCommands() {
 
   if(!Kble.isConnected()) Kble.begin();
 
-  displayRedStripe("Pairing...",TFT_WHITE, bruceConfig.priColor);
+  displaySomething("Pairing...");
 
   while (!Kble.isConnected() && !checkEscPress());
 
@@ -370,6 +367,7 @@ void ble_keyboard() {
     {"sv-SE",       [=]() { chooseKb_ble(KeyboardLayout_sv_SE); }},
     {"da-DK",       [=]() { chooseKb_ble(KeyboardLayout_da_DK); }},
     {"hu-HU",       [=]() { chooseKb_ble(KeyboardLayout_hu_HU); }},
+    {"tr-TR",       [=]() { chooseKb_ble(KeyboardLayout_tr_TR); }},
     {"Main Menu",   [=]() { returnToMenu = true; }},
   };
   delay(200);
@@ -378,7 +376,7 @@ void ble_keyboard() {
   if (!kbChosen_ble) Kble.begin(); // starts the KeyboardLayout_en_US as default if nothing had beed chosen (cancel selection)
   Ask_for_restart=1;
 Reconnect:
-  displayRedStripe("Pair to start",TFT_WHITE, bruceConfig.priColor);
+  displaySomething("Pair to start");
 
   while (!Kble.isConnected() && !checkEscPress()); // loop to wait for the connection callback or ESC
 

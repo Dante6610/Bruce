@@ -17,6 +17,8 @@ IRAM_ATTR void checkPosition();
     // Power handler for battery detection
     #include <Wire.h>
     #include <XPowersLib.h>
+    #include <bq27220.h>
+    BQ27220 bq;
     XPowersPPM PPM;
 #elif defined(T_EMBED)
     #include <driver/adc.h>
@@ -31,6 +33,7 @@ IRAM_ATTR void checkPosition();
 void _setup_gpio() {
     pinMode(PIN_POWER_ON, OUTPUT);
     digitalWrite(PIN_POWER_ON, HIGH);
+    pinMode(SEL_BTN,INPUT);
     #ifdef T_EMBED_1101
       // T-Embed CC1101 has a antenna circuit optimized to each frequency band, controlled by SW0 and SW1
       //Set antenna frequency settings
@@ -89,10 +92,8 @@ void _setup_gpio() {
 ***************************************************************************************/
 int getBattery() {
   int percent=0;
-  
   #if defined(T_EMBED_1101)
-    percent=(PPM.getSystemVoltage()-3300)*100/(float)(4150-3350);
-    
+    percent=bq.getChargePcnt();
   #elif defined(T_EMBED)
     uint8_t _batAdcCh = ADC1_GPIO4_CHANNEL;
     uint8_t _batAdcUnit = 1;
@@ -146,15 +147,19 @@ bool menuPress(int bot){
     //1 - Sel
     //2 - next
     //3 - any
-    if((bot==0 || bot==3) && _last_dir>0) {
+    if((bot==0) && _last_dir>0) {
         _last_dir=0;
         return true;
     }
-    if((bot==2 || bot==3) && _last_dir<0) {
+    if((bot==2) && _last_dir<0) {
         _last_dir=0;
         return true;
     }
-    if((bot==1 || bot==3) && digitalRead(SEL_BTN)==BTN_ACT) {
+    if((bot==1) && digitalRead(SEL_BTN)==BTN_ACT) {
+        _last_dir=0;
+        return true;
+    }
+    if(bot==3 && (_last_dir!=0 || digitalRead(SEL_BTN)==BTN_ACT)) {
         _last_dir=0;
         return true;
     }

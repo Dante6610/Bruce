@@ -2,12 +2,12 @@
 #include "core/display.h"
 #include "core/sd_functions.h"
 #include "modules/others/openhaystack.h"
-#include "modules/others/gps_tracker.h"
 #include "modules/others/tururururu.h"
 #include "modules/others/webInterface.h"
 #include "modules/others/qrcode_menu.h"
 #include "modules/others/mic.h"
 #include "modules/bjs_interpreter/interpreter.h"
+#include "modules/others/timer.h"
 
 #include "modules/others/bad_usb.h"
 #ifdef HAS_RGB_LED
@@ -20,41 +20,61 @@ void OthersMenu::optionsMenu() {
         {"LittleFS",     [=]() { loopSD(LittleFS); }},
         {"WebUI",        [=]() { loopOptionsWebUi(); }},
         {"QRCodes",      [=]() { qrcode_menu(); }},
-        {"GPS Tracker",  [=]() { GPSTracker(); }},
         {"Megalodon",    [=]() { shark_setup(); }},
     #ifdef MIC_SPM1423
         {"Mic Spectrum", [=]() { mic_test(); }},
     #endif
-        {"BadUSB",       [=]()  { usb_setup(); }},
+        {"BadUSB",       [=]() { usb_setup(); }},
     #ifdef HAS_KEYBOARD_HID
-        {"USB Keyboard", [=]()  { usb_keyboard(); }},
+        {"USB Keyboard", [=]() { usb_keyboard(); }},
     #endif
     #ifdef HAS_RGB_LED
-        {"LED Control",  [=]()  { ledrgb_setup(); }},  // IncursioHack
-        {"LED FLash",    [=]()  { ledrgb_flash(); }},  // IncursioHack
+        {"LED Control",  [=]() { ledrgb_setup(); }},  // IncursioHack
+        {"LED FLash",    [=]() { ledrgb_flash(); }},  // IncursioHack
     #endif
     #ifndef LITE_VERSION
-        {"Openhaystack", [=]()  { openhaystack_setup(); }},
+        {"Openhaystack", [=]() { openhaystack_setup(); }},
     #endif
     #if !defined(CORE) && !defined(CORE2)
-        {"Interpreter", [=]()   { run_bjs_script(); }},
+        {"Interpreter", [=]()  { run_bjs_script(); }},
     #endif
-        {"Main Menu",    [=]()  { backToMenu(); }},
+        {"Timer",        [=]() { Timer(); }},
+        {"Main Menu",    [=]() { backToMenu(); }},
     };
 
     delay(200);
     loopOptions(options,false,true,"Others");
 }
 
-String OthersMenu::getName() {
-    return _name;
-}
+void OthersMenu::drawIcon(float scale) {
+    clearIconArea();
 
-void OthersMenu::draw() {
-    tft.fillRect(iconX,iconY,80,80,bruceConfig.bgColor);
-    tft.fillCircle(40+iconX,40+iconY,7,bruceConfig.priColor);
-    tft.drawArc(40+iconX,40+iconY,18,15,0,340,bruceConfig.priColor,bruceConfig.bgColor);
-    tft.drawArc(40+iconX,40+iconY,25,22,20,360,bruceConfig.priColor,bruceConfig.bgColor);
-    tft.drawArc(40+iconX,40+iconY,32,29,0,200,bruceConfig.priColor,bruceConfig.bgColor);
-    tft.drawArc(40+iconX,40+iconY,32,29,240,360,bruceConfig.priColor,bruceConfig.bgColor);
+    int radius = scale * 7;
+
+    tft.fillCircle(iconCenterX, iconCenterY, radius, bruceConfig.priColor);
+
+    tft.drawArc(
+        iconCenterX, iconCenterY,
+        2.5*radius, 2*radius,
+        0, 340,
+        bruceConfig.priColor, bruceConfig.bgColor
+    );
+    tft.drawArc(
+        iconCenterX, iconCenterY,
+        3.5*radius, 3*radius,
+        20, 360,
+        bruceConfig.priColor, bruceConfig.bgColor
+    );
+    tft.drawArc(
+        iconCenterX, iconCenterY,
+        4.5*radius, 4*radius,
+        0, 200,
+        bruceConfig.priColor, bruceConfig.bgColor
+    );
+    tft.drawArc(
+        iconCenterX, iconCenterY,
+        4.5*radius, 4*radius,
+        240, 360,
+        bruceConfig.priColor, bruceConfig.bgColor
+    );
 }

@@ -36,7 +36,7 @@ void GPSTracker::setup() {
 }
 
 bool GPSTracker::begin_gps() {
-    GPSserial.begin(9600, SERIAL_8N1, SERIAL_RX, SERIAL_TX);
+    GPSserial.begin(bruceConfig.gpsBaudrate, SERIAL_8N1, SERIAL_RX, SERIAL_TX);
 
     int count = 0;
     padprintln("Waiting for GPS data");
@@ -45,7 +45,7 @@ bool GPSTracker::begin_gps() {
             end();
             return false;
         }
-        displayRedStripe("Waiting GPS: " + String(count)+ "s", TFT_WHITE, bruceConfig.priColor);
+        displaySomething("Waiting GPS: " + String(count)+ "s");
         count++;
         delay(1000);
     }

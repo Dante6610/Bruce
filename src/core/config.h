@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <map>
+#include <vector>
 
 #define DEFAULT_PRICOLOR 0xA80F
 
@@ -29,6 +30,10 @@ public:
     struct Credential {
         String user;
         String pwd;
+    };
+    struct QrCodeEntry {
+            String menuName;
+            String content;
     };
 
     const char *filepath = "/bruce.conf";
@@ -61,9 +66,20 @@ public:
 
     int rfidModule = M5_RFID2_MODULE;
 
+    int gpsBaudrate = 9600;
+
     String startupApp = "";
     String wigleBasicToken = "";
     int devMode = 0;
+
+    std::vector<String> disabledMenus = {};
+
+    std::vector<QrCodeEntry> qrCodes = {
+            {"Bruce AP", "WIFI:T:WPA;S:BruceNet;P:brucenet;;"},
+            {"Bruce Wiki", "https://github.com/pr3y/Bruce/wiki"}, 
+            {"Bruce Site", "https://bruce.computer"},
+            {"Rickroll", "https://youtu.be/dQw4w9WgXcQ"}
+    };
 
     /////////////////////////////////////////////////////////////////////////////////////
     // Constructor
@@ -98,6 +114,8 @@ public:
     void setWebUICreds(const String& usr, const String& pwd);
     void setWifiApCreds(const String& ssid, const String& pwd);
     void addWifiCredential(const String& ssid, const String& pwd);
+    void addQrCodeEntry(const String& menuName, const String& content);
+    void removeQrCodeEntry(const String& menuName);
     String getWifiPassword(const String& ssid) const;
 
     void setIrTxPin(int value);
@@ -115,11 +133,15 @@ public:
     void setRfidModule(RFIDModules value);
     void validateRfidModuleValue();
 
+    void setGpsBaudrate(int value);
+    void validateGpsBaudrateValue();
+
     void setStartupApp(String value);
     void setWigleBasicToken(String value);
     void setDevMode(int value);
     void validateDevModeValue();
-
+    void addDisabledMenu(String value);
+    // TODO: removeDisabledMenu(String value);
 };
 
 #endif

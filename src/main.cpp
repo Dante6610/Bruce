@@ -88,6 +88,13 @@ void _setup_gpio() __attribute__((weak));
 void _setup_gpio() { }
 
 /*********************************************************************
+**  Function: _post_setup_gpio()
+**  Sets up a weak (empty) function to be replaced by /ports/* /interface.h
+*********************************************************************/
+void _post_setup_gpio() __attribute__((weak));
+void _post_setup_gpio() { }
+
+/*********************************************************************
 **  Function: setup_gpio
 **  Setup GPIO pins
 *********************************************************************/
@@ -150,24 +157,27 @@ void boot_screen_anim() {
   boot_screen();
   int i = millis();
   // checks for boot.jpg in SD and LittleFS for customization
-  bool boot_img=false;
-  if(SD.exists("/boot.jpg")) boot_img = true;
-  else if(LittleFS.exists("/boot.jpg")) boot_img = true;
-  else if(SD.exists("/boot.gif")) boot_img = true;
-  else if(LittleFS.exists("/boot.gif")) boot_img = true;
+  int boot_img=0;
+  bool drawn=false;
+  if(SD.exists("/boot.jpg"))            boot_img = 1;
+  else if(LittleFS.exists("/boot.jpg")) boot_img = 2;
+  // GIFs are not working at all, need study
+  //else if(SD.exists("/boot.gif"))       boot_img = 3;
+  //else if(LittleFS.exists("/boot.gif")) boot_img = 4;
   // Start image loop
   while(millis()<i+7000) { // boot image lasts for 5 secs
   #if !defined(LITE_VERSION)
-    bool drawn=false;
-    if((millis()-i>2000) && (millis()-i)<2200){
+    if((millis()-i>2000) && !drawn) {
       tft.fillRect(0,45,WIDTH,HEIGHT-45,bruceConfig.bgColor);
-      if(boot_img && !drawn) {
-        if(showJpeg(SD,"/boot.jpg") && (millis()-i>2000) && (millis()-i<2200)) { boot_img=true; Serial.println("Image from SD"); }
-        else if (showJpeg(LittleFS,"/boot.jpg") && (millis()-i>2000) && (millis()-i<2100)) { boot_img=true; Serial.println("Image from LittleFS"); }
-        else if (showGIF(SD,"/boot.gif") && (millis()-i>2000) && (millis()-i<2200)) { boot_img=true; Serial.println("Image from SD"); }
-        else if (showGIF(LittleFS,"/boot.gif") && (millis()-i>2000) && (millis()-i<2100)) { boot_img=true; Serial.println("Image from LittleFS"); }
-        drawn=true;
+      if(boot_img > 0 && !drawn) {
+        tft.fillScreen(bruceConfig.bgColor);
+        if(boot_img==1)       { showJpeg(SD,"/boot.jpg",0,0,true);       Serial.println("Image from SD"); }
+        else if (boot_img==2) { showJpeg(LittleFS,"/boot.jpg",0,0,true); Serial.println("Image from LittleFS"); }
+        // GIFs are not working at all, need study
+        //else if (boot_img==3) { showGIF(SD,"/boot.gif");        Serial.println("Image from SD"); }
+        //else if (boot_img==4) { showGIF(LittleFS,"/boot.gif");  Serial.println("Image from LittleFS"); }
       }
+      drawn=true;
     }
     if(!boot_img && (millis()-i>2200) && (millis()-i)<2700) tft.drawRect(2*WIDTH/3,HEIGHT/2,2,2,bruceConfig.priColor);
     if(!boot_img && (millis()-i>2700) && (millis()-i)<2900) tft.fillRect(0,45,WIDTH,HEIGHT-45,bruceConfig.bgColor);
@@ -223,7 +233,6 @@ void startup_sound() {
     // play a boot sound
     if(SD.exists("/boot.wav")) playAudioFile(&SD, "/boot.wav");
     else if(LittleFS.exists("/boot.wav")) playAudioFile(&LittleFS, "/boot.wav");
-    setup_gpio(); // temp fix for menu inf. loop
   #endif
 #endif
 }
@@ -255,7 +264,6 @@ void setup() {
 
   bruceConfig.bright=100; // theres is no value yet
   begin_tft();
-  boot_screen();
 
   begin_storage();
   bruceConfig.fromFile();
@@ -265,6 +273,9 @@ void setup() {
 
   init_clock();
 
+  // Some GPIO Settings (such as CYD's brightness control must be set after tft and sdcard)
+  _post_setup_gpio();
+  // end of post gpio begin
   boot_screen_anim();
 
   startup_sound();
@@ -272,6 +283,7 @@ void setup() {
   if (bruceConfig.wifiAtStartup) {
     displayInfo("Connecting WiFi...");
     wifiConnectTask();
+    tft.fillScreen(bruceConfig.bgColor);
   }
 
   #if ! defined(HAS_SCREEN)
@@ -326,7 +338,7 @@ void loop() {
     }
 
     if (redraw) {
-      mainMenu.draw();
+      mainMenu.draw(float((float)HEIGHT/(float)135));
       clock_update=0; // forces clock drawing
       redraw = false;
       delay(REDRAW_DELAY);

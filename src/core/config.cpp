@@ -42,9 +42,23 @@ JsonDocument BruceConfig::toJson() const {
 
     setting["rfidModule"] = rfidModule;
 
+    setting["gpsBaudrate"] = gpsBaudrate;
+
     setting["startupApp"] = startupApp;
     setting["wigleBasicToken"] = wigleBasicToken;
     setting["devMode"] = devMode;
+
+    JsonArray dm = setting.createNestedArray("disabledMenus");
+    for(int i=0; i < disabledMenus.size(); i++){
+        dm.add(disabledMenus[i]);
+    }
+
+    JsonArray qrArray = setting.createNestedArray("qrCodes");
+    for (const auto& entry : qrCodes) {
+        JsonObject qrEntry = qrArray.createNestedObject();
+        qrEntry["menuName"] = entry.menuName;
+        qrEntry["content"] = entry.content;
+    }
 
     return jsonDoc;
 }
@@ -115,9 +129,32 @@ void BruceConfig::fromFile() {
 
     if(!setting["rfidModule"].isNull())  { rfidModule  = setting["rfidModule"].as<int>(); } else { count++; log_e("Fail"); }
 
+    if(!setting["gpsBaudrate"].isNull()) { gpsBaudrate  = setting["gpsBaudrate"].as<int>(); } else { count++; log_e("Fail"); }
+
     if(!setting["startupApp"].isNull())      { startupApp  = setting["startupApp"].as<String>(); } else { count++; log_e("Fail"); }
     if(!setting["wigleBasicToken"].isNull()) { wigleBasicToken  = setting["wigleBasicToken"].as<String>(); } else { count++; log_e("Fail"); }
     if(!setting["devMode"].isNull())         { devMode  = setting["devMode"].as<int>(); } else { count++; log_e("Fail"); }
+
+    if(!setting["disabledMenus"].isNull()) {
+        disabledMenus.clear();
+        JsonArray dm = setting["disabledMenus"].as<JsonArray>();
+        for (JsonVariant e : dm) {
+            disabledMenus.push_back(e.as<String>());
+        }
+    } else { count++; log_e("Fail"); }
+
+    if (!setting["qrCodes"].isNull()) {
+        qrCodes.clear();
+        JsonArray qrArray = setting["qrCodes"].as<JsonArray>();
+        for (JsonObject qrEntry : qrArray) {
+            String menuName = qrEntry["menuName"].as<String>();
+            String content = qrEntry["content"].as<String>();
+            qrCodes.push_back({menuName, content});
+            }
+    } else {
+        count++;
+        log_e("Fail to load qrCodes");
+    }
 
     validateConfig();
     if (count>0) saveFile();
@@ -160,6 +197,7 @@ void BruceConfig::validateConfig() {
     validateRfScanRangeValue();
     validateRfModuleValue();
     validateRfidModuleValue();
+    validateGpsBaudrateValue();
     validateDevModeValue();
 }
 
@@ -362,6 +400,18 @@ void BruceConfig::validateRfidModuleValue() {
 }
 
 
+void BruceConfig::setGpsBaudrate(int value) {
+    gpsBaudrate = value;
+    validateGpsBaudrateValue();
+    saveFile();
+}
+
+
+void BruceConfig::validateGpsBaudrateValue() {
+    if (gpsBaudrate != 9600 && gpsBaudrate != 115200) gpsBaudrate = 9600;
+}
+
+
 void BruceConfig::setStartupApp(String value) {
     startupApp = value;
     saveFile();
@@ -383,4 +433,22 @@ void BruceConfig::setDevMode(int value) {
 
 void BruceConfig::validateDevModeValue() {
     if (devMode > 1) devMode = 1;
+}
+
+
+void BruceConfig::addDisabledMenu(String value) {
+    // TODO: check if duplicate
+    disabledMenus.push_back(value);
+    saveFile();
+}
+
+void BruceConfig::addQrCodeEntry(const String& menuName, const String& content) {
+    qrCodes.push_back({menuName, content});
+    saveFile();
+}
+
+void BruceConfig::removeQrCodeEntry(const String& menuName) {
+    qrCodes.erase(std::remove_if(qrCodes.begin(), qrCodes.end(), 
+        [&](const QrCodeEntry& entry) { return entry.menuName == menuName; }), qrCodes.end());
+    saveFile();
 }

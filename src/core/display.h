@@ -11,12 +11,20 @@
 #define BORDER_PAD_X 10
 #define BORDER_PAD_Y 28
 
-//Funções para economizar linhas nas outras funções
+struct Opt_Coord {
+  uint16_t x=0;
+  uint16_t y=0;
+  uint16_t size=10;
+  uint16_t fgcolor=bruceConfig.priColor;
+  uint16_t bgcolor=bruceConfig.bgColor;
+};
+void displayScrollingText(const String& text, Opt_Coord& coord);
 
 bool showGIF(FS fs,String filename, int x=0, int y=0);
-bool showJpeg(FS fs,String filename, int x=0, int y=0);
+bool showJpeg(FS fs,String filename, int x=0, int y=0, bool center = false);
 
 uint16_t getComplementaryColor(uint16_t color);
+uint16_t getComplementaryColor2(uint16_t color);
 uint16_t getColorVariation(uint16_t color, int delta = 10, int direction = 0);
 
 void resetTftDisplay(int x = 0, int y = 0, uint16_t fc = bruceConfig.priColor, int size = FM, uint16_t bg = bruceConfig.bgColor, uint16_t screen = bruceConfig.bgColor);
@@ -24,11 +32,11 @@ void setTftDisplay(int x = 0, int y = 0, uint16_t fc = tft.textcolor, int size =
 
 void displayRedStripe(String text, uint16_t fgcolor = TFT_WHITE, uint16_t bgcolor = TFT_RED);
 
-void displayError(String txt, bool waitKeyPress = false);  // Faixa vermelha
-void displayWarning(String txt, bool waitKeyPress = false);// Faixa amarela
-void displayInfo(String txt, bool waitKeyPress = false);   // Faixa Azul
-void displaySuccess(String txt, bool waitKeyPress = false);// Faixa Verde
-
+void displayError(String txt, bool waitKeyPress = false);     // Red Stripe
+void displayWarning(String txt, bool waitKeyPress = false);   // Yellow Stripe
+void displayInfo(String txt, bool waitKeyPress = false);      // Blue Stripe
+void displaySuccess(String txt, bool waitKeyPress = false);   // Green Strupe
+void displaySomething(String txt, bool waitKeyPress = false); // UI Colored stripe
 void setPadCursor(int16_t padx=1, int16_t pady=0);
 
 void padprintf(int16_t padx, const char *format, ...);
@@ -63,7 +71,7 @@ int loopOptions(std::vector<Option>& options, bool bright, bool submenu, String 
 inline int loopOptions(std::vector<Option>& options, int _index) { return loopOptions(options, false, false, "", _index); }
 inline int loopOptions(std::vector<Option>& options) { return loopOptions(options, false, false, "", 0); }
 
-void drawOptions(int index,std::vector<Option>& options, uint16_t fgcolor, uint16_t bgcolor);
+Opt_Coord drawOptions(int index,std::vector<Option>& options, uint16_t fgcolor, uint16_t bgcolor);
 
 void drawSubmenu(int index,std::vector<Option>& options, String system);
 
@@ -73,7 +81,7 @@ void printTitle(String title);
 void printSubtitle(String subtitle, bool withLine = true);
 void printFootnote(String text);
 
-void listFiles(int index, std::vector<FileList> fileList);
+Opt_Coord listFiles(int index, std::vector<FileList> fileList);
 
 void drawWireguardStatus(int x, int y);
 
